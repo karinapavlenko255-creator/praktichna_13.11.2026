@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Інтерактивний робочий аркуш — Практична робота</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Застосування шрифту Times New Roman до всього документа */
+        body {
+            font-family: 'Times New Roman', Times, serif;
+            background-color: #f1f5f9;
+            color: #1e293b;
+        }
+        
+        input, textarea, button, select {
+            font-family: 'Times New Roman', Times, serif;
+        }
+
+        /* Панель керування залишаємо читабельною, але в єдиному стилі */
+        .no-print-bar {
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        /* Стилізація під аркуш формату А4 */
+        .a4-sheet {
+            background: white;
+            max-width: 900px;
+            margin: 2rem auto;
+            padding: 3rem 3.5rem;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+            border-radius: 8px;
+            font-size: 16px;
+            line-height: 1.45;
+        }
+
+        @media (max-width: 768px) {
+            .a4-sheet {
+                padding: 1.5rem 1.25rem;
+                margin: 0.5rem;
+            }
+        }
+
+        /* Абзацний відступ (червоний рядок) для умов завдань та тексту */
+        .doc-paragraph {
+            text-indent: 1.25cm;
+            text-align: justify;
+            margin-bottom: 0.5rem;
+        }
+
+        /* Стилі для редактора в стилі MS Word */
+        .word-editor-container {
+            border: 1px solid #cbd5e1;
+            border-radius: 6px;
+            overflow: hidden;
+            background-color: #f8fafc;
+            box-shadow: inset 0 1px 2px rgba(0,0,0,0.05);
+        }
+
+        /* Суцільна лінійка як у MS Word */
+        .word-ruler {
+            height: 24px;
+            background-color: #e2e8f0;
+            border-bottom: 1px solid #cbd5e1;
+            position: relative;
+            display: flex;
+            align-items: flex-end;
+            padding: 0 40px;
+            user-select: none;
+            overflow: hidden;
+        }
+
+        .ruler-track {
+            width: 100%;
+            height: 16px;
+            background-color: #ffffff;
+            position: relative;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-left: 1px solid #94a3b8;
+            border-right: 1px solid #94a3b8;
+        }
+
+        .ruler-tick {
+            width: 1px;
+            background-color: #64748b;
+            position: relative;
+        }
+        .ruler-tick.major { height: 8px; }
+        .ruler-tick.minor { height: 4px; }
+        .ruler-num {
+            position: absolute;
+            top: -11px;
+            left: -3px;
+            font-size: 9px;
+            color: #475569;
+            font-family: Arial, sans-serif;
+        }
+
+        /* Повзунки лінійки */
+        .ruler-indent-top {
+            position: absolute;
+            top: 0;
+            left: 36px;
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-top: 6px solid #1e40af;
+            cursor: ew-resize;
+            z-index: 10;
+        }
+        .ruler-indent-bottom {
+            position: absolute;
+            bottom: 0;
+            left: 36px;
+            width: 0;
+            height: 0;
+            border-left: 5px solid transparent;
+            border-right: 5px solid transparent;
+            border-bottom: 6px solid #1e40af;
+            cursor: ew-resize;
+            z-index: 10;
+        }
+
+        /* Робоча зона документа */
+        .word-page-area {
+            background-color: #ffffff;
+            min-height: 360px;
+            padding: 32px 40px;
+            font-family: 'Times New Roman', Times, serif;
+            font-size: 16px;
+            line-height: 1.4;
+            color: #000000;
+            outline: none;
+        }
+
+        .word-page-area:empty:before {
+            content: attr(data-placeholder);
+            color: #94a3b8;
+            font-style: italic;
+            pointer-events: none;
+        }
+
+        .word-page-area p {
+            margin-bottom: 6px;
+        }
+
+        /* Стилі для друку (збереження у PDF) */
+        @media print {
+            body {
+                background: white;
+            }
+            .no-print {
+                display: none !important;
+            }
+            .a4-sheet {
+                box-shadow: none;
+                margin: 0;
+                padding: 0;
+                max-width: 100%;
+            }
+            .word-editor-container {
+                border: 1px solid #000;
+            }
+            input, textarea {
+                border: none !important;
+                background: transparent !important;
+                resize: none;
+            }
+        }
+    </style>
+</head>
+<body class="pb-16">
+
+    <!-- Верхня панель керування (не друкується) -->
+    <div class="no-print no-print-bar sticky top-0 z-50 bg-slate-900 text-white shadow-md px-4 py-3">
+        <div class="max-w-5xl mx-auto flex flex-wrap items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+                <svg class="w-6 h-6 text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                </svg>
+                <span class="font-semibold text-sm sm:text-base">Інтерактивний робочий аркуш</span>
+                <span id="save-status" class="text-xs bg-slate-800 text-emerald-400 px-2 py-0.5 rounded-full ml-2 transition-opacity">Збережено</span>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <button onclick="resetWorksheet()" class="text-xs sm:text-sm px-3 py-1.5 rounded bg-slate-800 hover:bg-red-900/60 text-slate-300 hover:text-white transition border border-slate-700">
+                    Очистити все
+                </button>
+                <button onclick="window.print()" class="text-xs sm:text-sm px-4 py-1.5 rounded bg-blue-600 hover:bg-blue-500 text-white font-medium transition flex items-center gap-1.5 shadow">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"></path>
+                    </svg>
+                    Зберегти у PDF / Друк
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Основний аркуш документа -->
+    <div class="a4-sheet">
+        
+        <!-- Заголовок -->
+        <header class="text-center mb-6">
+            <h1 class="text-xl sm:text-2xl font-bold text-[#1F4E79] tracking-wide uppercase">Практична робота</h1>
+            <p class="text-base sm:text-lg font-bold text-[#2F5597] mt-1">з дисципліни «Стилістика професійного мовлення»</p>
+        </header>
+
+        <!-- Інформаційна таблиця студента -->
+        <div class="border border-blue-200 rounded-md overflow-hidden mb-6 text-base">
+            <div class="grid grid-cols-1 sm:grid-cols-3 border-b border-blue-200">
+                <div class="bg-[#F2F5F9] p-2.5 font-bold text-[#1F4E79]">Професія:</div>
+                <div class="sm:col-span-2 p-2.5">Секретар керівника (організації, підприємства, установи)</div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 border-b border-blue-200">
+                <div class="bg-[#F2F5F9] p-2.5 font-bold text-[#1F4E79] flex items-center">Виконав(ла):</div>
+                <div class="sm:col-span-2 p-2 flex flex-wrap items-center gap-2">
+                    <span>студент(ка) групи</span>
+                    <input type="text" id="student-group" data-save="true" placeholder="№ групи" class="border-b border-slate-400 focus:border-blue-600 outline-none px-2 py-0.5 w-24 text-center font-bold bg-blue-50/30 rounded-t">
+                    <input type="text" id="student-name" data-save="true" placeholder="Прізвище та ім'я" class="border-b border-slate-400 focus:border-blue-600 outline-none px-2 py-0.5 flex-1 min-w-[200px] font-bold bg-blue-50/30 rounded-t">
+                </div>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-3">
+                <div class="bg-[#F2F5F9] p-2.5 font-bold text-[#1F4E79]">Перевірив(ла):</div>
+                <div class="sm:col-span-2 p-2.5 text-slate-600">викладач(ка) ______________________________________</div>
+            </div>
+        </div>
+
+        <!-- Тема та мета -->
+        <div class="space-y-3 text-base leading-relaxed mb-6">
+            <p class="doc-paragraph">
+                <span class="font-bold text-[#1F4E79]">Тема:</span> Соціальна термінологія та професіоналізми у фаховому мовленні секретаря керівника.
+            </p>
+            <div>
+                <p class="font-bold text-[#1F4E79] mb-1" style="text-indent: 1.25cm;">Мета роботи:</p>
+                <ul class="list-disc pl-10 space-y-1 text-justify">
+                    <li><span class="font-bold">навчальна:</span> поглибити знання про лексичний склад сучасної української професійної мови; навчитися розмежовувати офіційну термінологію (зокрема соціальну, управлінську, кадрово-діловодну) та професіоналізми; сформувати навички доречного використання фахової лексики в усній та писемній комунікації;</li>
+                    <li><span class="font-bold">розвивальна:</span> розвивати мовне чуття, вміння редагувати службові документи та усувати стилістичні огріхи (жаргонізми, ненормативні професіоналізми, кальки);</li>
+                    <li><span class="font-bold">виховна:</span> виховувати повагу до норм української літературної мови, високу культуру ділового спілкування та відповідальність за якість підготовки управлінської документації.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- І. ТЕОРЕТИЧНА ЧАСТИНА -->
+        <section class="mb-8">
+            <div class="flex items-center justify-between border-b-2 border-[#1F4E79] pb-1 mb-3">
+                <h2 class="text-lg font-bold text-[#1F4E79]">І. ТЕОРЕТИЧНА ЧАСТИНА (Опорний конспект)</h2>
+                <button onclick="toggleTheory()" id="theory-toggle-btn" class="no-print text-xs bg-blue-100 hover:bg-blue-200 text-[#1F4E79] font-bold px-2.5 py-1 rounded transition">
+                    Згорнути теорію
+                </button>
+            </div>
+            
+            <div id="theory-content" class="space-y-3 text-base leading-relaxed">
+                <p class="doc-paragraph">
+                    Професійне мовлення секретаря керівника функціонує переважно в межах <strong>офіційно-ділового стилю</strong>, де головними вимогами є точність, однозначність, стандартизованість та відсутність емоційного забарвлення. Основу лексичного складу такого мовлення становлять терміни та професіоналізми.
+                </p>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 my-3">
+                    <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200">
+                        <h3 class="font-bold text-[#2F5597] mb-1.5">1. Термін та соціальна термінологія</h3>
+                        <p class="doc-paragraph text-sm mb-2"><strong>Термін</strong> — точне, офіційно закріплене найменування певного поняття науки, управління, права чи соціальної сфери.</p>
+                        <p class="doc-paragraph text-sm text-slate-700"><strong>Приклади соціальної термінології:</strong> <em>соціальне страхування, пільгова категорія громадян, колективний договір, інклюзивність, соціальний пакет, звернення громадян, штатний розпис, тимчасова непрацездатність.</em></p>
+                    </div>
+                    <div class="bg-slate-50 p-3.5 rounded-lg border border-slate-200">
+                        <h3 class="font-bold text-[#2F5597] mb-1.5">2. Професіоналізми</h3>
+                        <p class="doc-paragraph text-sm mb-2"><strong>Професіоналізми</strong> — слова та звороти, властиві усному неофіційному спілкуванню працівників певної галузі («офісний жаргон»).</p>
+                        <p class="doc-paragraph text-sm text-slate-700"><strong>Приклади (неприпустимі в документах):</strong> <em>«шапка» документа, «підвал», «завізувати» (швидко підписати), «вхідні/вихідні», «лікарняний», «кадри».</em></p>
+                    </div>
+                </div>
+
+                <!-- Порівняльна таблиця -->
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse border border-slate-300 text-sm">
+                        <thead>
+                            <tr class="bg-[#1F4E79] text-white">
+                                <th class="border border-slate-300 p-2 text-left">Критерій</th>
+                                <th class="border border-slate-300 p-2 text-left">Терміни</th>
+                                <th class="border border-slate-300 p-2 text-left">Професіоналізми</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td class="border border-slate-300 p-2 font-bold">Сфера вживання</td>
+                                <td class="border border-slate-300 p-2">Офіційна (накази, листи, звіти)</td>
+                                <td class="border border-slate-300 p-2">Неофіційна (усне спілкування в офісі)</td>
+                            </tr>
+                            <tr class="bg-[#F2F5F9]">
+                                <td class="border border-slate-300 p-2 font-bold">Стиль і фіксація</td>
+                                <td class="border border-slate-300 p-2">Нейтральні, зафіксовані в ДСТУ, законах</td>
+                                <td class="border border-slate-300 p-2">Розмовні, не кодифіковані стандартами</td>
+                            </tr>
+                            <tr>
+                                <td class="border border-slate-300 p-2 font-bold">У документах</td>
+                                <td class="border border-slate-300 p-2 text-emerald-800 font-bold">Обов’язкові до вживання</td>
+                                <td class="border border-slate-300 p-2 text-red-800 font-bold">Категорично заборонені</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- ІІ. ПРАКТИЧНА ЧАСТИНА -->
+        <section>
+            <h2 class="text-lg font-bold text-[#1F4E79] border-b-2 border-[#1F4E79] pb-1 mb-4">ІІ. ПРАКТИЧНА ЧАСТИНА</h2>
+
+            <!-- ЗАВДАННЯ 1 -->
+            <div class="mb-8">
+                <h3 class="font-bold text-[#2F5597] text-base mb-1.5">Завдання 1. Диференціація фахової лексики (2 бали)</h3>
+                <p class="doc-paragraph mb-3">
+                    Розподіліть наведені нижче слова та словосполучення у дві колонки таблиці: до першої запишіть офіційні терміни (соціальні, кадрові, діловодні), до другої — розмовні професіоналізми. <span class="no-print text-blue-700 italic">(Підказка: натисніть на слово зі списку нижче, щоб швидко додати його у вибрану колонку, або впишіть самостійно).</span>
+                </p>
+
+                <!-- Інтерактивний банк слів -->
+                <div class="no-print bg-blue-50/70 border border-blue-200 rounded-lg p-3 mb-4">
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                        <span class="text-xs font-bold uppercase tracking-wider text-[#1F4E79]">Банк слів (натисніть для розподілу):</span>
+                        <div class="flex items-center gap-2 text-xs">
+                            <span>Куди додавати:</span>
+                            <label class="inline-flex items-center gap-1 cursor-pointer bg-white px-2 py-1 rounded border border-blue-300">
+                                <input type="radio" name="target-col" value="terms" checked class="text-blue-600">
+                                <span class="font-bold text-emerald-800">Офіційні терміни</span>
+                            </label>
+                            <label class="inline-flex items-center gap-1 cursor-pointer bg-white px-2 py-1 rounded border border-blue-300">
+                                <input type="radio" name="target-col" value="profs" class="text-blue-600">
+                                <span class="font-bold text-amber-800">Професіоналізми</span>
+                            </label>
+                        </div>
+                    </div>
+                    <div id="word-bank" class="flex flex-wrap gap-1.5"></div>
+                </div>
+
+                <!-- Таблиця розподілу -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="border border-slate-300 rounded-md overflow-hidden">
+                        <div class="bg-[#1F4E79] text-white font-bold text-sm p-2 text-center">1. Офіційні терміни (соціальні, кадрові, діловодні)</div>
+                        <div class="p-2 space-y-1.5 bg-white" id="terms-inputs"></div>
+                    </div>
+                    <div class="border border-slate-300 rounded-md overflow-hidden">
+                        <div class="bg-[#1F4E79] text-white font-bold text-sm p-2 text-center">2. Професіоналізми (розмовна офісна лексика)</div>
+                        <div class="p-2 space-y-1.5 bg-white" id="profs-inputs"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ЗАВДАННЯ 2 -->
+            <div class="mb-8">
+                <h3 class="font-bold text-[#2F5597] text-base mb-1.5">Завдання 2. Переклад з «офісного» на офіційно-діловий (3 бали)</h3>
+                <p class="doc-paragraph mb-3">
+                    Замініть наведені професіоналізми та розмовні звороти секретарів нормативними термінами або термінологічними словосполученнями, які дозволено вживати в офіційних розпорядчих документах.
+                </p>
+
+                <div class="space-y-2.5 text-base" id="task2-list"></div>
+            </div>
+
+            <!-- ЗАВДАННЯ 3 -->
+            <div class="mb-8">
+                <h3 class="font-bold text-[#2F5597] text-base mb-1.5">Завдання 3. Стилістичне редагування службових текстів (3 бали)</h3>
+                <p class="doc-paragraph mb-3">
+                    Уважно прочитайте уривки з чернеток службових документів. Знайдіть у них професіоналізми, розмовні слова та лексичні помилки, виправте їх і заповніть таблицю нижче.
+                </p>
+
+                <div class="overflow-x-auto">
+                    <table class="w-full border-collapse border border-slate-300 text-sm">
+                        <thead>
+                            <tr class="bg-[#1F4E79] text-white">
+                                <th class="border border-slate-300 p-2 w-8 text-center">№</th>
+                                <th class="border border-slate-300 p-2 w-1/3 text-left">Неправильний варіант (з чернетки)</th>
+                                <th class="border border-slate-300 p-2 w-1/3 text-left">Відредагований нормативний варіант</th>
+                                <th class="border border-slate-300 p-2 text-left">Пояснення правки (що виправлено)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="task3-tbody"></tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- ЗАВДАННЯ 4: РЕДАКТОР У СТИЛІ WORD З ЛІНІЙКОЮ -->
+            <div class="mb-8">
+                <h3 class="font-bold text-[#2F5597] text-base mb-1.5">Завдання 4. Документування управлінської діяльності (4 бали)</h3>
+                <p class="doc-paragraph mb-2">
+                    Уявіть, що ви працюєте секретарем керівника підприємства (наприклад, ТОВ «АгроСвіт» або закладу освіти). Складіть текст <strong>доповідної записки</strong> на ім’я директора про необхідність оновлення інформаційного стенда щодо соціальних гарантій працівників та порядку розгляду звернень громадян.
+                </p>
+                <div class="bg-amber-50 border-l-4 border-amber-400 p-3 text-sm text-slate-800 mb-3 space-y-1">
+                    <p class="font-bold text-amber-900" style="text-indent: 1.25cm;">Обов’язкові вимоги до виконання:</p>
+                    <ul class="list-disc pl-8 space-y-1 text-justify">
+                        <li>дотримайтеся структури та реквізитів доповідної записки згідно з <strong>ДСТУ 4163:2020</strong> (адресат у правому верхньому куті, назва виду документа, дата, заголовок до тексту, текст з абзацними відступами, підпис);</li>
+                        <li>використайте не менше 5 соціальних та діловодних термінів (<em>соціальні гарантії, колективний договір, звернення громадян, графік особистого прийому, пільгова категорія, локальні нормативні акти</em>);</li>
+                        <li>використовуйте панель інструментів нижче для виділення <strong>жирним шрифтом</strong> потрібних елементів, налаштування вирівнювання та абзаців.</li>
+                    </ul>
+                </div>
+
+                <!-- ІНТЕРАКТИВНИЙ РЕДАКТОР У СТИЛІ MICROSOFT WORD -->
+                <div class="word-editor-container">
+                    <!-- Панель інструментів форматування -->
+                    <div class="no-print bg-slate-100 border-b border-slate-300 px-3 py-2 flex flex-wrap items-center gap-1.5">
+                        
+                        <!-- Жирний / Звичайний шрифт -->
+                        <div class="flex items-center bg-white border border-slate-300 rounded overflow-hidden">
+                            <button type="button" onclick="execDocCmd('bold')" title="Жирний шрифт (Ctrl+B)" class="px-2.5 py-1 hover:bg-blue-50 font-bold text-sm text-slate-800 border-r border-slate-200 flex items-center gap-1">
+                                <span>Ж</span>
+                                <span class="text-xs font-normal text-slate-600 hidden sm:inline">Жирний</span>
+                            </button>
+                            <button type="button" onclick="removeBold()" title="Зробити нежирним (звичайний текст)" class="px-2.5 py-1 hover:bg-blue-50 font-normal text-sm text-slate-700 flex items-center gap-1">
+                                <span>Зв</span>
+                                <span class="text-xs text-slate-600 hidden sm:inline">Нежирний</span>
+                            </button>
+                        </div>
+
+                        <!-- Курсив / Підкреслений -->
+                        <div class="flex items-center bg-white border border-slate-300 rounded overflow-hidden">
+                            <button type="button" onclick="execDocCmd('italic')" title="Курсив (Ctrl+I)" class="px-2.5 py-1 hover:bg-blue-50 italic text-sm text-slate-800 border-r border-slate-200">
+                                К
+                            </button>
+                            <button type="button" onclick="execDocCmd('underline')" title="Підкреслений (Ctrl+U)" class="px-2.5 py-1 hover:bg-blue-50 underline text-sm text-slate-800">
+                                П
+                            </button>
+                        </div>
+
+                        <!-- Вирівнювання абзацу -->
+                        <div class="flex items-center bg-white border border-slate-300 rounded overflow-hidden">
+                            <button type="button" onclick="execDocCmd('justifyLeft')" title="Вирівнювання за лівим краєм" class="p-1.5 hover:bg-blue-50 text-slate-700 border-r border-slate-200">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h10M4 18h14"></path></svg>
+                            </button>
+                            <button type="button" onclick="execDocCmd('justifyCenter')" title="Вирівнювання по центру" class="p-1.5 hover:bg-blue-50 text-slate-700 border-r border-slate-200">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M7 12h10M5 18h14"></path></svg>
+                            </button>
+                            <button type="button" onclick="execDocCmd('justifyRight')" title="Вирівнювання за правим краєм (для адресата)" class="p-1.5 hover:bg-blue-50 text-slate-700 border-r border-slate-200">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M10 12h10M6 18h14"></path></svg>
+                            </button>
+                            <button type="button" onclick="execDocCmd('justifyFull')" title="Вирівнювання за шириною" class="p-1.5 hover:bg-blue-50 text-slate-700">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                            </button>
+                        </div>
+
+                        <!-- Абзацний відступ (червоний рядок) та новий абзац -->
+                        <div class="flex items-center bg-white border border-slate-300 rounded overflow-hidden">
+                            <button type="button" onclick="toggleFirstLineIndent()" title="Додати/прибрати абзацний відступ (червоний рядок 1.25 см)" class="px-2.5 py-1 hover:bg-blue-50 text-xs font-bold text-slate-700 border-r border-slate-200 flex items-center gap-1">
+                                <svg class="w-3.5 h-3.5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
+                                <span>Абзацний відступ</span>
+                            </button>
+                            <button type="button" onclick="insertNewParagraph()" title="Створити новий абзац" class="px-2.5 py-1 hover:bg-blue-50 text-xs font-bold text-slate-700">
+                                + Новий абзац
+                            </button>
+                        </div>
+
+                        <!-- Допоміжний зразок структури (на іншу тему) -->
+                        <button type="button" onclick="insertMemoTemplate()" class="ml-auto text-xs bg-blue-600 hover:bg-blue-700 text-white px-2.5 py-1 rounded shadow-sm transition">
+                            Вставити зразок структури
+                        </button>
+                    </div>
+
+                    <!-- ЄДИНА ЛІНІЙКА ЯК У MICROSOFT WORD -->
+                    <div class="word-ruler no-print" title="Координатна лінійка документа (см)">
+                        <div class="ruler-indent-top" id="ruler-top-marker" title="Відступ першого рядка"></div>
+                        <div class="ruler-indent-bottom" id="ruler-bottom-marker" title="Лівий відступ абзацу"></div>
+                        <div class="ruler-track" id="word-ruler-track"></div>
+                    </div>
+
+                    <!-- Аркуш для введення тексту доповідної записки -->
+                    <div id="memo-editor" contenteditable="true" class="word-page-area" data-placeholder="Почніть друкувати доповідну записку тут або натисніть «Вставити зразок структури» на панелі вище, щоб переглянути приклад оформлення реквізитів..."></div>
+                </div>
+            </div>
+
+            <!-- ІІІ. ВИСНОВКИ -->
+            <div class="mb-6">
+                <h2 class="text-lg font-bold text-[#1F4E79] border-b-2 border-[#1F4E79] pb-1 mb-2">ІІІ. ВИСНОВКИ</h2>
+                <p class="doc-paragraph text-sm italic text-slate-700 mb-2">
+                    Сформулюйте самостійні висновки за результатами роботи (4–6 речень про те, чим відрізняється соціальна термінологія від професіоналізмів, чому неприпустимо змішувати їх у діловодстві та як виконання завдань допоможе в майбутній професійній діяльності секретаря керівника):
+                </p>
+                <textarea id="conclusions-input" data-save="true" rows="5" placeholder="Напишіть ваші висновки тут..." class="w-full border border-slate-300 focus:border-blue-600 focus:ring-1 focus:ring-blue-600 rounded-md p-3 text-base leading-relaxed outline-none bg-slate-50/40"></textarea>
+            </div>
+
+            <!-- Критерії оцінювання -->
+            <div class="bg-[#F2F5F9] border border-blue-200 rounded-md p-3.5 text-sm text-slate-800">
+                <p class="font-bold text-[#1F4E79] mb-1" style="text-indent: 1.25cm;">Критерії оцінювання практичної роботи (максимум — 12 балів):</p>
+                <ul class="list-disc pl-8 space-y-0.5">
+                    <li><strong>Завдання 1</strong> (правильна класифікація лексики) — 2 бали (по 0,125 бала за кожне правильно розподілене слово).</li>
+                    <li><strong>Завдання 2</strong> (точність добору офіційно-ділових відповідників) — 3 бали (по 0,375 бала за кожен пункт).</li>
+                    <li><strong>Завдання 3</strong> (якість стилістичного редагування та обґрунтування правок) — 3 бали (по 0,75 бала за кожне речення).</li>
+                    <li><strong>Завдання 4</strong> (грамотність, дотримання реквізитів ДСТУ та доречність термінології у доповідній записці) — 4 бали.</li>
+                </ul>
+            </div>
+
+        </section>
+    </div>
+
+    <!-- Модальне вікно підтвердження очищення -->
+    <div id="reset-modal" class="no-print-bar fixed inset-0 bg-slate-900/50 hidden items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg max-w-sm w-full p-5 shadow-xl">
+            <h4 class="font-bold text-lg text-slate-800 mb-2">Очистити робочий аркуш?</h4>
+            <p class="text-sm text-slate-600 mb-4">Усі введені вами відповіді та текст доповідної записки буде видалено. Цю дію неможливо скасувати.</p>
+            <div class="flex justify-end gap-2">
+                <button onclick="closeResetModal()" class="px-4 py-1.5 rounded text-sm font-medium text-slate-600 hover:bg-slate-100">Скасувати</button>
+                <button onclick="confirmReset()" class="px-4 py-1.5 rounded text-sm font-medium bg-red-600 hover:bg-red-700 text-white">Так, очистити</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Дані для Завдання 1
+        const task1Words = [
+            "корінець", "колективний договір", "шапка наказу", "соціальний захист",
+            "декрет", "листок непрацездатності", "безвізовий (документ без погодження)", "штатний розпис",
+            "вхідні", "пільгове забезпечення", "підшити до справи", "відпустка без збереження заробітної плати",
+            "дублікат", "забити в базу", "звернення громадян", "бігунок"
+        ];
+
+        // Дані для Завдання 2
+        const task2Items = [
+            "Принести бігунок",
+            "Оформити декретні",
+            "Скинути на пошту скан",
+            "Поставити на контроль",
+            "Підшити в папку-швидкозшивач",
+            "Закрити лікарняний",
+            "Видати на руки оригінал",
+            "Оформити за сумісництвом на пів ставки"
+        ];
+
+        // Дані для Завдання 3
+        const task3Items = [
+            "«Прошу надати мені відпустку за свій рахунок на три дні у зв’язку із сімейними обставинами, бо я вже погодив це питання усно з начальником».",
+            "«Секретарю приймальні терміново розіслати по відділах свіжі накази та підколоти корінці в папку для контролю».",
+            "«Працівникам, які належать до чорнобильців та інших пільговиків, необхідно подати довідки в кадри до кінця тижня для нарахування соцпакету».",
+            "«У шапці заяви було допущено помилку в назві посади керівника, тому документ повернули на доопрацювання без реєстрації у вхідних»."
+        ];
+
+        // Ініціалізація інтерфейсу при завантаженні сторінки
+        document.addEventListener('DOMContentLoaded', () => {
+            renderWordBank();
+            renderTask1Inputs();
+            renderTask2();
+            renderTask3();
+            renderWordRuler();
+            loadSavedData();
+            setupAutoSave();
+        });
+
+        // 1. Рендер банку слів для Завдання 1
+        function renderWordBank() {
+            const container = document.getElementById('word-bank');
+            container.innerHTML = '';
+            task1Words.forEach((word, idx) => {
+                const btn = document.createElement('button');
+                btn.type = 'button';
+                btn.id = `word-chip-${idx}`;
+                btn.textContent = word;
+                btn.className = 'text-sm bg-white hover:bg-blue-100 text-slate-800 border border-blue-300 px-2.5 py-0.5 rounded-full transition shadow-sm active:scale-95';
+                btn.onclick = () => assignWordToColumn(word, btn);
+                container.appendChild(btn);
+            });
+        }
+
+        // Додавання слова у вибрану колонку при кліку
+        function assignWordToColumn(word, btnElement) {
+            const target = document.querySelector('input[name="target-col"]:checked').value;
+            const prefix = target === 'terms' ? 't1-term-' : 't1-prof-';
+            
+            for (let i = 1; i <= 8; i++) {
+                const input = document.getElementById(prefix + i);
+                if (input && input.value.trim() === '') {
+                    input.value = word;
+                    btnElement.classList.add('opacity-40', 'line-through');
+                    saveAllData();
+                    return;
+                }
+            }
+            showToast('Усі 8 рядків у цій колонці вже заповнені!');
+        }
+
+        // Рендер полів для Завдання 1 (завжди очищаємо перед рендером, щоб уникнути дублів)
+        function renderTask1Inputs() {
+            const termsContainer = document.getElementById('terms-inputs');
+            const profsContainer = document.getElementById('profs-inputs');
+            termsContainer.innerHTML = '';
+            profsContainer.innerHTML = '';
+            
+            for (let i = 1; i <= 8; i++) {
+                termsContainer.innerHTML += `
+                    <div class="flex items-center gap-2 text-base">
+                        <span class="text-slate-500 font-bold w-5">${i}.</span>
+                        <input type="text" id="t1-term-${i}" data-save="true" oninput="syncWordBankChips()" class="w-full border-b border-slate-300 focus:border-blue-500 outline-none py-1 px-1.5 text-slate-900 bg-slate-50/30">
+                    </div>`;
+                profsContainer.innerHTML += `
+                    <div class="flex items-center gap-2 text-base">
+                        <span class="text-slate-500 font-bold w-5">${i}.</span>
+                        <input type="text" id="t1-prof-${i}" data-save="true" oninput="syncWordBankChips()" class="w-full border-b border-slate-300 focus:border-blue-500 outline-none py-1 px-1.5 text-slate-900 bg-slate-50/30">
+                    </div>`;
+            }
+        }
+
+        // Синхронізація закреслення слів у банку слів
+        function syncWordBankChips() {
+            const enteredValues = [];
+            for (let i = 1; i <= 8; i++) {
+                const v1 = document.getElementById(`t1-term-${i}`)?.value.trim().toLowerCase();
+                const v2 = document.getElementById(`t1-prof-${i}`)?.value.trim().toLowerCase();
+                if (v1) enteredValues.push(v1);
+                if (v2) enteredValues.push(v2);
+            }
+            task1Words.forEach((word, idx) => {
+                const chip = document.getElementById(`word-chip-${idx}`);
+                if (chip) {
+                    if (enteredValues.includes(word.toLowerCase())) {
+                        chip.classList.add('opacity-40', 'line-through');
+                    } else {
+                        chip.classList.remove('opacity-40', 'line-through');
+                    }
+                }
+            });
+        }
+
+        // 2. Рендер Завдання 2
+        function renderTask2() {
+            const container = document.getElementById('task2-list');
+            container.innerHTML = '';
+            task2Items.forEach((phrase, idx) => {
+                const num = idx + 1;
+                container.innerHTML += `
+                    <div class="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 bg-slate-50/60 p-2 rounded border border-slate-200/70">
+                        <div class="sm:w-2/5 font-normal text-slate-800">
+                            <span class="text-[#1F4E79] font-bold mr-1">${num}.</span>
+                            <span class="italic">${phrase}</span> —
+                        </div>
+                        <input type="text" id="t2-ans-${num}" data-save="true" placeholder="Введіть нормативний відповідник..." class="flex-1 border-b border-slate-300 focus:border-blue-600 outline-none bg-transparent py-1 px-2 text-slate-900">
+                    </div>
+                `;
+            });
+        }
+
+        // 3. Рендер Завдання 3
+        function renderTask3() {
+            const tbody = document.getElementById('task3-tbody');
+            tbody.innerHTML = '';
+            task3Items.forEach((draft, idx) => {
+                const num = idx + 1;
+                tbody.innerHTML += `
+                    <tr>
+                        <td class="border border-slate-300 p-2 text-center font-bold text-[#1F4E79] align-top">${num}</td>
+                        <td class="border border-slate-300 p-2 italic text-slate-800 align-top bg-red-50/20">${draft}</td>
+                        <td class="border border-slate-300 p-1.5 align-top">
+                            <textarea id="t3-edit-${num}" data-save="true" rows="3" placeholder="Запишіть правильний варіант..." class="w-full h-full text-sm p-1.5 outline-none focus:bg-blue-50/40 rounded resize-y"></textarea>
+                        </td>
+                        <td class="border border-slate-300 p-1.5 align-top">
+                            <textarea id="t3-expl-${num}" data-save="true" rows="3" placeholder="Що саме виправлено..." class="w-full h-full text-sm p-1.5 outline-none focus:bg-blue-50/40 rounded resize-y"></textarea>
+                        </td>
+                    </tr>
+                `;
+            });
+        }
+
+        // 4. Побудова суцільної лінійки у стилі Word (від 0 до 17 см)
+        function renderWordRuler() {
+            const track = document.getElementById('word-ruler-track');
+            track.innerHTML = ''; // Очищаємо перед побудовою, щоб не було дублювання
+            const totalHalfCm = 34; // 17 см по 0.5 см
+            for (let i = 0; i <= totalHalfCm; i++) {
+                const tick = document.createElement('div');
+                if (i % 2 === 0) {
+                    tick.className = 'ruler-tick major';
+                    const cm = i / 2;
+                    if (cm > 0 && cm < 17) {
+                        const label = document.createElement('span');
+                        label.className = 'ruler-num';
+                        label.textContent = cm;
+                        tick.appendChild(label);
+                    }
+                } else {
+                    tick.className = 'ruler-tick minor';
+                }
+                track.appendChild(tick);
+            }
+        }
+
+        // Функції форматування для мініредактора Word
+        function execDocCmd(command, value = null) {
+            const editor = document.getElementById('memo-editor');
+            editor.focus();
+            document.execCommand(command, false, value);
+            saveAllData();
+        }
+
+        // Зробити виділений текст нежирним (звичайним)
+        function removeBold() {
+            const editor = document.getElementById('memo-editor');
+            editor.focus();
+            if (document.queryCommandState('bold')) {
+                document.execCommand('bold', false, null);
+            }
+            saveAllData();
+        }
+
+        // Додати або прибрати абзацний відступ (червоний рядок)
+        function toggleFirstLineIndent() {
+            const editor = document.getElementById('memo-editor');
+            editor.focus();
+            const selection = window.getSelection();
+            if (!selection.rangeCount) return;
+
+            let node = selection.anchorNode;
+            while (node && node !== editor) {
+                if (node.nodeName === 'P' || node.nodeName === 'DIV') {
+                    if (node.style.textIndent === '35px') {
+                        node.style.textIndent = '0px';
+                        document.getElementById('ruler-top-marker').style.left = '36px';
+                    } else {
+                        node.style.textIndent = '35px';
+                        document.getElementById('ruler-top-marker').style.left = '71px';
+                    }
+                    saveAllData();
+                    return;
+                }
+                node = node.parentNode;
+            }
+            document.execCommand('formatBlock', false, 'p');
+            toggleFirstLineIndent();
+        }
+
+        // Вставка нового абзацу з відступом
+        function insertNewParagraph() {
+            const editor = document.getElementById('memo-editor');
+            editor.focus();
+            const p = document.createElement('p');
+            p.style.textIndent = '35px';
+            p.style.textAlign = 'justify';
+            p.innerHTML = 'Текст нового абзацу...';
+            editor.appendChild(p);
+            
+            const range = document.createRange();
+            const sel = window.getSelection();
+            range.selectNodeContents(p);
+            sel.removeAllRanges();
+            sel.addRange(range);
+            saveAllData();
+        }
+
+        // Вставка зразка структури доповідної записки (на іншу тематику, без прізвищ студентів)
+        function insertMemoTemplate() {
+            const editor = document.getElementById('memo-editor');
+            if (editor.innerText.trim().length > 10) {
+                editor.innerHTML += '<hr class="my-3 border-slate-300">';
+            }
+            editor.innerHTML += `
+                <div style="text-align: right; margin-bottom: 16px;">
+                    <div>Керівнику установи (підприємства)</div>
+                    <div>Ім’я ПРІЗВИЩЕ</div>
+                    <div>посада укладача (родовий відмінок)</div>
+                    <div>Ім’я ПРІЗВИЩЕ</div>
+                </div>
+                <div style="text-align: center; font-weight: bold; margin-bottom: 4px;">ДОПОВІДНА ЗАПИСКА</div>
+                <div style="text-align: center; margin-bottom: 14px;">00.00.2026 № 00</div>
+                <div style="font-weight: bold; margin-bottom: 10px;">Про ... (заголовок до тексту за іншою темою)</div>
+                <p style="text-indent: 35px; text-align: justify;">Доводжу до Вашого відома, що для забезпечення безперебійної роботи приймальні виникла потреба у закупівлі витратних матеріалів для оргтехніки (паперу формату А4 та картриджів)...</p>
+                <p style="text-indent: 35px; text-align: justify;">Прошу надати дозвіл на придбання зазначених канцелярських товарів за рахунок кошторису адміністративних витрат.</p>
+                <div style="margin-top: 24px; display: flex; justify-content: space-between;">
+                    <span>Назва посади</span>
+                    <span><i>особистий підпис</i></span>
+                    <span>Ім’я ПРІЗВИЩЕ</span>
+                </div>
+            `;
+            saveAllData();
+        }
+
+        // Згортання / розгортання теорії
+        function toggleTheory() {
+            const content = document.getElementById('theory-content');
+            const btn = document.getElementById('theory-toggle-btn');
+            if (content.classList.contains('hidden')) {
+                content.classList.remove('hidden');
+                btn.textContent = 'Згорнути теорію';
+            } else {
+                content.classList.add('hidden');
+                btn.textContent = 'Розгорнути теорію';
+            }
+        }
+
+        // Автозбереження у localStorage (новий ключ v2 для чистого старту)
+        const STORAGE_KEY = 'stylistics_worksheet_v2';
+
+        function setupAutoSave() {
+            document.querySelectorAll('[data-save="true"]').forEach(el => {
+                el.addEventListener('input', saveAllData);
+            });
+            document.getElementById('memo-editor').addEventListener('input', saveAllData);
+        }
+
+        function saveAllData() {
+            const data = {};
+            document.querySelectorAll('[data-save="true"]').forEach(el => {
+                data[el.id] = el.value;
+            });
+            data['memo-editor'] = document.getElementById('memo-editor').innerHTML;
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+
+            const badge = document.getElementById('save-status');
+            badge.textContent = 'Збережено щойно';
+            badge.classList.remove('opacity-50');
+        }
+
+        function loadSavedData() {
+            const raw = localStorage.getItem(STORAGE_KEY);
+            if (!raw) return;
+            try {
+                const data = JSON.parse(raw);
+                Object.keys(data).forEach(id => {
+                    if (id === 'memo-editor') {
+                        document.getElementById('memo-editor').innerHTML = data[id];
+                    } else {
+                        const el = document.getElementById(id);
+                        if (el) el.value = data[id];
+                    }
+                });
+                syncWordBankChips();
+            } catch (e) {
+                console.error('Помилка завантаження збережених даних', e);
+            }
+        }
+
+        // Керування модальним вікном очищення
+        function resetWorksheet() {
+            const modal = document.getElementById('reset-modal');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+        }
+
+        function closeResetModal() {
+            const modal = document.getElementById('reset-modal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }
+
+        function confirmReset() {
+            localStorage.removeItem(STORAGE_KEY);
+            document.querySelectorAll('[data-save="true"]').forEach(el => {
+                el.value = '';
+            });
+            document.getElementById('memo-editor').innerHTML = '';
+            syncWordBankChips();
+            closeResetModal();
+            showToast('Робочий аркуш очищено');
+        }
+
+        // Сповіщення без alert()
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'no-print-bar fixed bottom-5 right-5 bg-slate-800 text-white text-xs px-4 py-2.5 rounded-lg shadow-lg z-50 transition-opacity';
+            toast.textContent = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => {
+                toast.style.opacity = '0';
+                setTimeout(() => toast.remove(), 300);
+            }, 2500);
+        }
+    </script>
+</body>
+</html>
